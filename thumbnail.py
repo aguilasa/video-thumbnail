@@ -17,7 +17,15 @@ IMAGE_WIDTH = 1536
 FONT_NAME = "HelveticaNeue.ttc"
 BACKGROUND_COLOR = "#fff"
 TEXT_COLOR = "#000"
-TIMESTAMP_COLOR = "#fff"
+TIMESTAMP_COLOR = "#000"
+
+
+def get_current_path():
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def get_font_path():
+    return os.path.join(get_current_path(), FONT_NAME)
 
 
 def get_time_display(time):
@@ -52,15 +60,18 @@ def create_thumbnail(filename):
 
         metadata = [
             "File name: %s" % filename,
-            "Size: %d bytes (%.2f MB)" % (container.size, container.size / 1048576),
+            "Size: %d bytes (%.2f MB)" % (
+                container.size, container.size / 1048576),
             "Duration: %s" % get_time_display(container.duration // 1000000),
         ]
 
-        start = min(container.duration // (IMAGE_PER_ROW * IMAGE_ROWS), 5 * 1000000)
+        start = min(container.duration //
+                    (IMAGE_PER_ROW * IMAGE_ROWS), 5 * 1000000)
         end = container.duration - start
         time_marks = []
         for i in range(IMAGE_ROWS * IMAGE_PER_ROW):
-            time_marks.append(start + (end - start) // (IMAGE_ROWS * IMAGE_PER_ROW - 1) * i)
+            time_marks.append(start + (end - start) //
+                              (IMAGE_ROWS * IMAGE_PER_ROW - 1) * i)
 
         images = []
         for idx, mark in enumerate(time_marks):
@@ -70,29 +81,38 @@ def create_thumbnail(filename):
                 break
 
         width, height = images[0][0].width, images[0][0].height
-        metadata.append('Video: (%dpx, %dpx), %dkbps' % (width, height, container.bit_rate // 1024))
+        metadata.append('Video: (%dpx, %dpx), %dkbps' %
+                        (width, height, container.bit_rate // 1024))
 
         img = Image.new("RGB", (IMAGE_WIDTH, IMAGE_WIDTH), BACKGROUND_COLOR)
         draw = ImageDraw.Draw(img)
-        font = ImageFont.truetype(FONT_NAME, FONT_SIZE)
-        _, min_text_height = draw.textsize("\n".join(metadata), font=font)
-        image_width_per_img = int(round((IMAGE_WIDTH - PADDING) / IMAGE_PER_ROW)) - PADDING
+        font = ImageFont.truetype(get_font_path(), FONT_SIZE)
+
+        # _, min_text_height = draw.textsize("\n".join(metadata), font=font)
+        _, top, _, bottom = draw.multiline_textbbox((0,0), text="\n".join(metadata), font=font)
+        min_text_height = bottom - top
+
+        image_width_per_img = int(
+            round((IMAGE_WIDTH - PADDING) / IMAGE_PER_ROW)) - PADDING
         image_height_per_img = int(round(image_width_per_img / width * height))
         image_start_y = PADDING * 2 + min_text_height
 
         img = Image.new("RGB", (IMAGE_WIDTH, image_start_y + (PADDING + image_height_per_img) * IMAGE_ROWS),
                         BACKGROUND_COLOR)
         draw = ImageDraw.Draw(img)
-        draw.text((PADDING, PADDING), "\n".join(metadata), TEXT_COLOR, font=font)
+        draw.text((PADDING, PADDING), "\n".join(
+            metadata), TEXT_COLOR, font=font)
         for idx, snippet in enumerate(images):
             y = idx // IMAGE_PER_ROW
             x = idx % IMAGE_PER_ROW
             new_img, timestamp = snippet
-            new_img = new_img.resize((image_width_per_img, image_height_per_img), resample=Image.BILINEAR)
+            new_img = new_img.resize(
+                (image_width_per_img, image_height_per_img), resample=Image.BILINEAR)
             x = PADDING + (PADDING + image_width_per_img) * x
             y = image_start_y + (PADDING + image_height_per_img) * y
             img.paste(new_img, box=(x, y))
-            draw.text((x + PADDING, y + PADDING), get_time_display(timestamp), TIMESTAMP_COLOR, font=font)
+            draw.text((x + PADDING, y + PADDING),
+                      get_time_display(timestamp), TIMESTAMP_COLOR, font=font)
 
         img.save(jpg_name)
         print('OK!')
@@ -105,8 +125,9 @@ def create_thumbnail(filename):
 
 
 if __name__ == "__main__":
-    p = input("Input the path you want to process: ")
-    p = os.path.abspath(p)
+    # p = input("Input the path you want to process: ")
+    # p = os.path.abspath(p)
+    p = '/mnt/commons/other'
 
     for root, dirs, files in os.walk(p):
         print('Switch to root %s...' % root)
