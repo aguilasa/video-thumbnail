@@ -20,22 +20,6 @@ TEXT_COLOR = "#000"
 TIMESTAMP_COLOR = "#000"
 
 
-def get_current_path():
-    return os.path.dirname(os.path.abspath(__file__))
-
-
-def get_font_path():
-    return os.path.join(get_current_path(), FONT_NAME)
-
-
-def get_time_display(time):
-    return "%02d:%02d:%02d" % (time // 3600, time % 3600 // 60, time % 60)
-
-
-def get_random_filename(ext):
-    return ''.join([random.choice(string.ascii_lowercase) for _ in range(20)]) + ext
-
-
 def create_thumbnail(filename):
     print('Processing:', filename)
 
@@ -65,20 +49,8 @@ def create_thumbnail(filename):
             "Duration: %s" % get_time_display(container.duration // 1000000),
         ]
 
-        start = min(container.duration //
-                    (IMAGE_PER_ROW * IMAGE_ROWS), 5 * 1000000)
-        end = container.duration - start
-        time_marks = []
-        for i in range(IMAGE_ROWS * IMAGE_PER_ROW):
-            time_marks.append(start + (end - start) //
-                              (IMAGE_ROWS * IMAGE_PER_ROW - 1) * i)
-
-        images = []
-        for idx, mark in enumerate(time_marks):
-            container.seek(mark)
-            for frame in container.decode(video=0):
-                images.append((frame.to_image(), mark // 1000000))
-                break
+        time_marks = get_time_marks(container)
+        images = get_image_frames(container, time_marks)
 
         width, height = images[0][0].width, images[0][0].height
         metadata.append('Video: (%dpx, %dpx), %dkbps' %
@@ -89,7 +61,7 @@ def create_thumbnail(filename):
         font = ImageFont.truetype(get_font_path(), FONT_SIZE)
 
         # _, min_text_height = draw.textsize("\n".join(metadata), font=font)
-        _, top, _, bottom = draw.multiline_textbbox((0,0), text="\n".join(metadata), font=font)
+        _, top, _, bottom = draw.multiline_textbbox((0, 0), text="\n".join(metadata), font=font)
         min_text_height = bottom - top
 
         image_width_per_img = int(
@@ -122,6 +94,43 @@ def create_thumbnail(filename):
         os.rename(random_filename, filename)
         if os.path.exists(random_filename_2):
             os.remove(random_filename_2)
+
+
+def get_time_marks(container):
+    start = min(container.duration //
+                (IMAGE_PER_ROW * IMAGE_ROWS), 5 * 1000000)
+    end = container.duration - start
+    time_marks = []
+    for i in range(IMAGE_ROWS * IMAGE_PER_ROW):
+        time_marks.append(start + (end - start) //
+                          (IMAGE_ROWS * IMAGE_PER_ROW - 1) * i)
+    return time_marks
+
+
+def get_current_path():
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def get_font_path():
+    return os.path.join(get_current_path(), FONT_NAME)
+
+
+def get_time_display(time):
+    return "%02d:%02d:%02d" % (time // 3600, time % 3600 // 60, time % 60)
+
+
+def get_random_filename(ext):
+    return ''.join([random.choice(string.ascii_lowercase) for _ in range(20)]) + ext
+
+
+def get_image_frames(container, time_marks):
+    images = []
+    for idx, mark in enumerate(time_marks):
+        container.seek(mark)
+        for frame in container.decode(video=0):
+            images.append((frame.to_image(), mark // 1000000))
+            break
+    return images
 
 
 if __name__ == "__main__":
