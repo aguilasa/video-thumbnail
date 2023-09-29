@@ -56,17 +56,14 @@ def create_thumbnail(filename):
         metadata.append('Video: (%dpx, %dpx), %dkbps' %
                         (width, height, container.bit_rate // 1024))
 
-        img = Image.new("RGB", (IMAGE_WIDTH, IMAGE_WIDTH), BACKGROUND_COLOR)
-        draw = ImageDraw.Draw(img)
         font = ImageFont.truetype(get_font_path(), FONT_SIZE)
 
-        # _, min_text_height = draw.textsize("\n".join(metadata), font=font)
-        _, top, _, bottom = draw.multiline_textbbox((0, 0), text="\n".join(metadata), font=font)
-        min_text_height = bottom - top
+        min_text_height = get_min_text_height(font, metadata)
 
         image_width_per_img = int(
             round((IMAGE_WIDTH - PADDING) / IMAGE_PER_ROW)) - PADDING
         image_height_per_img = int(round(image_width_per_img / width * height))
+
         image_start_y = PADDING * 2 + min_text_height
 
         img = Image.new("RGB", (IMAGE_WIDTH, image_start_y + (PADDING + image_height_per_img) * IMAGE_ROWS),
@@ -74,6 +71,7 @@ def create_thumbnail(filename):
         draw = ImageDraw.Draw(img)
         draw.text((PADDING, PADDING), "\n".join(
             metadata), TEXT_COLOR, font=font)
+
         for idx, snippet in enumerate(images):
             y = idx // IMAGE_PER_ROW
             x = idx % IMAGE_PER_ROW
@@ -94,6 +92,14 @@ def create_thumbnail(filename):
         os.rename(random_filename, filename)
         if os.path.exists(random_filename_2):
             os.remove(random_filename_2)
+
+
+def get_min_text_height(font, metadata):
+    img = Image.new("RGB", (IMAGE_WIDTH, IMAGE_WIDTH), BACKGROUND_COLOR)
+    draw = ImageDraw.Draw(img)
+    _, top, _, bottom = draw.multiline_textbbox((0, 0), text="\n".join(metadata), font=font)
+    min_text_height = bottom - top
+    return min_text_height
 
 
 def get_time_marks(container):
