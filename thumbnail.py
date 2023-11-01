@@ -20,13 +20,14 @@ TEXT_COLOR = "#000"
 TIMESTAMP_COLOR = "#000"
 
 
-def create_thumbnail(filename):
+def create_thumbnail(filename, with_duration=True):
     print('Processing:', filename)
 
-    jpg_name = '%s.jpg' % filename
-    if os.path.exists(jpg_name):
-        print('Thumbnail assumed exists!')
-        return
+    if not with_duration:
+        thumb_filename = '%s.jpg' % filename
+        if os.path.exists(thumb_filename):
+            print('Thumbnail assumed exists!')
+            return
 
     _, ext = os.path.splitext(filename)
     random_filename = get_random_filename(ext)
@@ -42,11 +43,19 @@ def create_thumbnail(filename):
                             random_filename_2], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             container = av.open(random_filename_2)
 
+        duration = get_time_display(container.duration // 1000000)
+
+        if with_duration:
+            thumb_filename = '{0}-{1}.jpg'.format(duration, filename)
+            if os.path.exists(thumb_filename):
+                print('Thumbnail assumed exists!')
+                return
+
         metadata = [
             "File name: %s" % filename,
             "Size: %d bytes (%.2f MB)" % (
                 container.size, container.size / 1048576),
-            "Duration: %s" % get_time_display(container.duration // 1000000),
+            "Duration: %s" % duration,
         ]
 
         time_marks = get_time_marks(container)
@@ -84,7 +93,7 @@ def create_thumbnail(filename):
             draw.text((x + PADDING, y + PADDING),
                       get_time_display(timestamp), TIMESTAMP_COLOR, font=font)
 
-        img.save(jpg_name)
+        img.save(thumb_filename)
         print('OK!')
     except Exception as e:
         traceback.print_exc()
